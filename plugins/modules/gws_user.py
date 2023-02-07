@@ -1,14 +1,19 @@
 # user - creating, disabling                - done
 
-# groups - creating, modifiying, deleting
+# groups - creating, modifiying             - doing
+
 # drives - creating, modifiying, deleting
 # archive/delete - user, drives,
 # need send email task in role
 
+
+# prepend exit messages to failure message
+# add error e to failure message
+# check for users/teams that dont exist match with what passed
+
 import json
 import random
 import string
-import requests
 from ansible.module_utils.basic import AnsibleModule
 from googleapiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials

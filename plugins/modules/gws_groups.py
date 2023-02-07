@@ -5,9 +5,9 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 DOCUMENTATION = """
 ---
-module: gws_group
-short_description: Manage Google Workspace group
-description: Manage Google Workspace group
+module: gws_groups
+short_description: Manage Google Workspace groups
+description: Manage Google Workspace groups
 author: "Will Albers (@walbers)"
 """
 
@@ -101,75 +101,84 @@ def main():
         "auth_email": {"type": "str", "required": True},
         "auth_scopes": {"type": "list", "required": True},
         "auth_dictionary": {"type": "dict", "required": True},
-        "email": {"type": "str", "required": True},
-        "name": {"type": "str", "required": False},
-        "description": {"type": "str", "required": False},
-        "members": {
-            "type": "list",
-            "required": False,
-        },  # list of dictionaries of emails and roles
+        "groups": {"type": "list", "required": True},
+        # "email": {"type": "str", "required": True},
+        # "name": {"type": "str", "required": False},
+        # "description": {"type": "str", "required": False},
+        # "members": {
+        #     "type": "list",
+        #     "required": False,
+        # },  # list of dictionaries of emails and roles
     }
 
     module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True)
     gws = AnsibleGWS(module)
 
-    email = module.params["email"]
-    name = module.params["name"]
-    description = module.params["description"]
-    members = module.params["members"]
+    # can use get all groups
 
-    group = gws.get_group(email)
-    if group is None:
-        if module.check_mode:
-            gws.exit_messages.append(f"Would have created group: {name}")
-        else:
-            gws.create_group(name, email, description)
-            group_members = {}
-    else:
-        group_members = gws.get_group_members(email).get("members")
-        if group_members is None:
-            group_members = {}
-        else:
-            group_members = {
-                member["email"]: member["role"] for member in group_members
-            }
+    groups = module.params["groups"]
 
-    member_email_set = set()
-    if members is not None:
-        for member in members:
-            if "@" not in member["email"]:
-                module.fail_json(
-                    msg=f"Need valid email for member. Given: {member['email']}"
-                )
-            elif member["role"] not in ["MEMBER", "MANAGER", "OWNER"]:
-                module.fail_json(
-                    msg=f"Need valid role for member. Given: {member['role']}"
-                )
-            elif member["email"] not in group_members:
-                if module.check_mode:
-                    gws.exit_messages.append(
-                        f"Would have added user: {member['email']} to group: {email} with role: {member['role']}"
-                    )
-                else:
-                    gws.create_group_member(email, member["email"], member["role"])
-            elif group_members[member["email"]] != member["role"]:
-                if module.check_mode:
-                    gws.exit_messages.append(
-                        f"Would have updated user: {member['email']} in group: {email} to role: {member['role']}"
-                    )
-                else:
-                    gws.update_group_member(email, member["email"], member["role"])
-            member_email_set.add(member["email"])
+    for group in groups:
+        try:
+            email = group["email"]
+            name = group["name"]
+            description = group["description"]
+            members = group["members"]
+        except KeyError as e:
+            module.fail_json(msg=f"Group {email} is missing required key: {e}")
 
-    need_to_remove = set(group_members.keys()) - member_email_set
-    if need_to_remove:
-        for member in need_to_remove:
-            if module.check_mode:
-                gws.exit_messages.append(
-                    f"Would have removed: {member} from group: {email}"
-                )
+        gws_group = gws.get_group(email)
+        if gws_group is None:
+            if self.module.check_mode:
+                gws.exit_messages.append(f"Would have created group: {name}")
             else:
-                gws.delete_group_member(email, member)
+                gws.create_group(name, email, description)
+                group_members = []
+        else:
+            group_members = gws.get_group_members(email).get("members")
+            if group_members is None:
+                group_members = {}
+            else:
+                group_members = {
+                    member["email"]: member["role"] for member in group_members
+                }
+
+        member_email_set = set()
+        if members is not None:
+            for member in members:
+                if "@" not in member["email"]:
+                    module.fail_json(
+                        msg=f"Need valid email for member. Given: {member['email']}"
+                    )
+                elif member["role"] not in ["MEMBER", "MANAGER", "OWNER"]:
+                    module.fail_json(
+                        msg=f"Need valid role for member. Given: {member['role']}"
+                    )
+                elif member["email"] not in group_members:
+                    if module.check_mode:
+                        gws.exit_messages.append(
+                            f"Would have added user: {member['email']} to group: {email} with role: {member['role']}"
+                        )
+                    else:
+                        gws.create_group_member(email, member["email"], member["role"])
+                elif group_members[member["email"]] != member["role"]:
+                    if module.check_mode:
+                        gws.exit_messages.append(
+                            f"Would have updated user: {member['email']} in group: {email} to role: {member['role']}"
+                        )
+                    else:
+                        gws.update_group_member(email, member["email"], member["role"])
+                member_email_set.add(member["email"])
+
+        need_to_remove = set(group_members.keys()) - member_email_set
+        if need_to_remove:
+            for member in need_to_remove:
+                if module.check_mode:
+                    gws.exit_messages.append(
+                        f"Would have removed: {member} from group: {email}"
+                    )
+                else:
+                    gws.delete_group_member(email, member)
 
     module.params["auth_dictionary"] = "REDACTED"
     module.exit_json(changed=bool(gws.exit_messages), msg="\n".join(gws.exit_messages))

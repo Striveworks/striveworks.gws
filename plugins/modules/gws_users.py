@@ -1,14 +1,6 @@
-# user - creating, disabling                - done
-
-# groups - creating, modifiying, deleting
-# drives - creating, modifiying, deleting
-# archive/delete - user, drives,
-# need send email task in role
-
 import json
 import random
 import string
-import requests
 from ansible.module_utils.basic import AnsibleModule
 from googleapiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
@@ -66,7 +58,9 @@ class AnsibleGWS:
             )
             return user
         except Exception as e:
-            self.module.fail_json(msg=f"Error creating user: {email}") # add to exit message
+            self.module.fail_json(
+                msg=f"Error creating user: {email}"
+            )  # add to exit message
 
     def update_user(self, email, suspended, is_admin):
         try:
@@ -83,7 +77,9 @@ class AnsibleGWS:
             )
             return user
         except Exception as e:
-            self.module.fail_json(msg=f"Error updating user: {email}") # add to exit message
+            self.module.fail_json(
+                msg=f"Error updating user: {email}"
+            )  # add to exit message
 
 
 def main():
@@ -111,7 +107,9 @@ def main():
             module.fail_json(msg=f"User: {email} is missing required fields.\n{e}")
 
         if email == "" or "@" not in email:
-            module.fail_json(msg=f"Need valid email. Given: {email}") # add to exit message
+            module.fail_json(
+                msg=f"Need valid email. Given: {email}"
+            )  # add to exit message
 
         user = gws.get_user(email)
 
@@ -138,9 +136,7 @@ def main():
 
     module.params["auth_dictionary"] = "REDACTED"
     module.params["users"] = "REDACTED"
-    module.exit_json(
-        changed=bool(gws.exit_messages), msg="\n".join(gws.exit_messages)
-    )
+    module.exit_json(changed=bool(gws.exit_messages), msg="\n".join(gws.exit_messages))
 
 
 if __name__ == "__main__":
