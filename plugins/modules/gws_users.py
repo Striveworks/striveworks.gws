@@ -66,7 +66,7 @@ class AnsibleGWS:
             )
             return user
         except Exception as e:
-            self.module.fail_json(msg=f"Error creating user: {email}")
+            self.module.fail_json(msg=f"Error creating user: {email}") # add to exit message
 
     def update_user(self, email, suspended, is_admin):
         try:
@@ -83,7 +83,7 @@ class AnsibleGWS:
             )
             return user
         except Exception as e:
-            self.module.fail_json(msg=f"Error updating user: {email}")
+            self.module.fail_json(msg=f"Error updating user: {email}") # add to exit message
 
 
 def main():
@@ -93,12 +93,6 @@ def main():
         "auth_scopes": {"type": "list", "required": True},
         "auth_dictionary": {"type": "dict", "required": True},
         "users": {"type": "list", "required": True},
-        # "email": {"type": "str", "required": True},
-        # "password": {"type": "str", "default": ""},
-        # "given_name": {"type": "str", "required": True},
-        # "surname": {"type": "str", "required": True},
-        # "is_admin": {"type": "bool", "default": False},
-        # "suspended": {"type": "bool", "default": False},
     }
 
     module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True)
@@ -113,13 +107,11 @@ def main():
             surname = ansible_user["surname"]
             suspended = ansible_user["suspended"]
             is_admin = ansible_user["gws_admin"]
-            gws.exit_messages.append(f"XXXXXXXXX On user {email}")
-            # module.fail_json(msg="\n".join(gws.exit_messages))
         except Exception as e:
             module.fail_json(msg=f"User: {email} is missing required fields.\n{e}")
 
         if email == "" or "@" not in email:
-            module.fail_json(msg=f"Need valid email. Given: {email}")
+            module.fail_json(msg=f"Need valid email. Given: {email}") # add to exit message
 
         user = gws.get_user(email)
 
@@ -130,7 +122,7 @@ def main():
                 else gws.get_random_password()
             )
             if module.check_mode:
-                module.exit_json(changed=True, msg=f"User {email} would be created")
+                gws.exit_messages.append(f"User {email} would be created")
             else:
                 user = gws.create_user(
                     email, given_name, surname, is_admin, suspended, password, is_admin
@@ -138,18 +130,17 @@ def main():
 
         elif user["suspended"] != suspended or user["isAdmin"] != is_admin:
             if module.check_mode:
-                module.exit_json(
-                    changed=True,
-                    msg=f"User {email} would be updated with suspended: {suspended} and is_admin: {is_admin}",
+                gws.exit_messages.append(
+                    f"User {email} would be updated with suspended: {suspended} and is_admin: {is_admin}"
                 )
             else:
                 user = gws.update_user(email, suspended, is_admin)
 
-        module.params["auth_dictionary"] = "REDACTED"
-        module.params["users"] = "REDACTED"
-        module.exit_json(
-            changed=bool(gws.exit_messages), msg="\n".join(gws.exit_messages)
-        )
+    module.params["auth_dictionary"] = "REDACTED"
+    module.params["users"] = "REDACTED"
+    module.exit_json(
+        changed=bool(gws.exit_messages), msg="\n".join(gws.exit_messages)
+    )
 
 
 if __name__ == "__main__":
