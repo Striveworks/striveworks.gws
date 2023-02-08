@@ -131,7 +131,7 @@ def main():
             group_members = {}
         else:
             group_members = {
-                member["email"]: member["role"] for member in group_members
+                member["email"].lower(): member["role"] for member in group_members
             }
 
     member_email_set = set()
@@ -148,18 +148,18 @@ def main():
             elif member["email"] not in group_members:
                 if module.check_mode:
                     gws.exit_messages.append(
-                        f"Would have added user: {member['email']} to group: {email} with role: {member['role']}"
+                        f"Would have added member: {member['email']} to group: {email} with role: {member['role']}"
                     )
                 else:
                     gws.create_group_member(email, member["email"], member["role"])
             elif group_members[member["email"]] != member["role"]:
                 if module.check_mode:
                     gws.exit_messages.append(
-                        f"Would have updated user: {member['email']} in group: {email} to role: {member['role']}"
+                        f"Would have updated member: {member['email']} in group: {email} to role: {member['role']}"
                     )
                 else:
                     gws.update_group_member(email, member["email"], member["role"])
-            member_email_set.add(member["email"])
+            member_email_set.add(member["email"].lower())
 
     need_to_remove = set(group_members.keys()) - member_email_set
     if need_to_remove:
