@@ -1,11 +1,11 @@
 # user - creating, disabling                - done
+# groups - creating, modifiying             - done
+# archive - users                           - done
 
-# groups - creating, modifiying             - doing
+# delete - users                            - doing
 
-# drives - creating, modifiying, deleting
-# archive/delete - user, drives,
+
 # need send email task in role
-
 
 # prepend exit messages to failure message
 # add error e to failure message
